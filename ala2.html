@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Catastrophe FX - Divyarajsinh Chavda</title>
+    <style>
+        :root {
+            --road-color: #2c3e50;
+            --sky-top: #0a0a1f;
+            --sky-bottom: #22223b;
+            --explosion-core: #ffdd59;
+            --explosion-outer: #ff5e22;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+            font-family: 'Segoe UI', sans-serif;
+            background: linear-gradient(to top, var(--sky-bottom), var(--sky-top));
+            position: relative;
+        }
+
+        /* --- NEW: Navbar Styles --- */
+        .navbar {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            background: rgba(0, 0, 0, 0.4);
+            z-index: 25;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        .navbar .logo {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: white;
+        }
+        .navbar .nav-links a {
+            color: white;
+            text-decoration: none;
+            margin-left: 20px;
+            font-size: 1rem;
+        }
+
+        /* --- NEW: Footer News Ticker Styles --- */
+        .news-ticker {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 30px;
+            background: rgba(0,0,0,0.7);
+            z-index: 22;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+        }
+        .news-ticker p {
+            position: absolute;
+            color: white;
+            font-size: 16px;
+            white-space: nowrap;
+            animation: tickerScroll 25s linear infinite;
+        }
+        @keyframes tickerScroll { 
+            from { transform: translateX(100%); } 
+            to { transform: translateX(-150%); } /* Extends beyond screen width */
+        }
+        
+        #star-container, #effects-container, #animation-container, #ui-container { position: absolute; left: 0; top: 0; width: 100%; height: 100%; pointer-events: none; }
+        #star-container { z-index: 1; }
+        .star { position: absolute; width: 2px; height: 2px; background: white; border-radius: 50%; animation: twinkle 6s infinite ease-in-out; }
+        .city-silhouette { position: absolute; bottom: 80px; width: 100%; height: 100px; background: #111; opacity: 0.6; z-index: 2; }
+        .road { position: absolute; bottom: 0; width: 100%; height: 80px; background: var(--road-color); z-index: 3; border-top: 10px solid #233140; }
+        .road-markings{width:100%;height:10px;background:repeating-linear-gradient(to right,white 0,white 50px,transparent 50px,transparent 150px);margin-top:35px;animation:moveRoad 2s linear infinite;}
+        
+        .falling-plane { position:absolute; z-index:5; font-size:35px; top: -100px; left: var(--start-x); transform: rotate(-45deg); animation: planeFall 3s ease-in forwards; animation-delay: var(--delay); }
+        .plane-piece { position: absolute; font-size: 30px; z-index: 11; animation: planeScatter 0.8s ease-out forwards; }
+        
+        .explosion { position: absolute; transform: translate(-50%, -50%); z-index: 10; }
+        .explosion .fireball { width: 200px; height: 200px; background: radial-gradient(circle, white 0%, var(--explosion-core) 30%, var(--explosion-outer) 70%, transparent 100%); border-radius: 50%; animation: expand 0.5s ease-out forwards; }
+        .explosion .main-shockwave { width: 350px; height: 350px; border: 5px solid rgba(255,255,255,0.7); border-radius: 50%; animation: ripple 0.8s ease-out 0.1s forwards; }
+        .crater { position: absolute; bottom: 40px; width: 80px; height: 15px; background: #111; border-radius: 50%; box-shadow: inset 0 3px 10px black; z-index: 3; opacity: 0; animation: fadeIn 1s forwards .5s; }
+        .vibrate { animation: shake 0.4s ease-in-out; }
+
+        .mayday-alert { position: absolute; top:0; left:0; width:100%; height:100%; z-index: 20; }
+        .mayday-text{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:4rem;font-weight:bold;color:red;text-shadow:0 0 20px white,0 0 50px red;animation:flashText 0.4s infinite alternate;}
+        .bg-sparks{position:absolute;width:100%;height:100%;background:radial-gradient(circle,rgba(255,0,0,0.2)0%,transparent 70%);animation:pulse 1s infinite;}
+        
+        .final-message-container { position: absolute; top: 40%; width: 100%; text-align: center; z-index: 21; pointer-events: none; }
+        .final-message { font-size: 5rem; font-weight: 900; color: var(--explosion-outer); text-shadow:0 0 10px white, 0 0 20px var(--explosion-outer); opacity:0; transform:scale(0.5); animation:showText 1s ease-out forwards; }
+        .replay-btn { display: block; margin: 20px auto; background: #fff; color: #111; padding: 15px 30px; border: none; border-radius: 30px; cursor: pointer; font-size: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.4); opacity: 0; animation: showText 1s 1s forwards; pointer-events: all; }
+        
+        @keyframes twinkle{ 50% { opacity: 0.3; } }
+        @keyframes moveRoad{from{background-position:0 0;}to{background-position:-150px 0;}}
+        @keyframes planeFall{ to { top: calc(100vh - 130px); left: var(--end-x); transform: rotate(-60deg) scale(1.5); } }
+        @keyframes planeScatter{ to { transform: translate(var(--tx), var(--ty)) rotate(var(--rot)) scale(0.4); opacity: 0; } }
+        @keyframes expand{ to { transform: scale(1.5); opacity: 0; } }
+        @keyframes ripple{ to { opacity: 0; transform: scale(2.5); } }
+        @keyframes showText{ to { opacity: 1; transform: scale(1); } }
+        @keyframes fadeIn{ to { opacity: 1; } }
+        @keyframes shake{ 25% { transform: translate(-8px, 8px); } 50% { transform: translate(8px, -8px); } 75% { transform: translate(-8px, 8px); } }
+        @keyframes flashText{to{opacity:0.2;transform:translate(-50%, -50%) scale(1.1);}}
+        @keyframes pulse{50%{opacity:0.5;}}
+    </style>
+</head>
+<body>
+    <div class="navbar">
+        <div class="logo">Bhavnagar Control Tower</div>
+        <div class="nav-links">
+            <a href="#">Home</a>
+            <a href="#">About</a>
+            <a href="#">Contact</a>
+        </div>
+    </div>
+
+    <div id="star-container"></div>
+    <div class="city-silhouette"></div>
+    <div class="road" id="road"><div class="road-markings"></div></div>
+    
+    <div id="animation-container"></div>
+    <div id="effects-container"></div>
+    <div id="ui-container"></div>
+    
+    <div class="news-ticker hidden" id="news-ticker">
+        <p>BREAKING NEWS: MULTIPLE UNIDENTIFIED AIRCRAFT CRASH NEAR BHAVNAGAR PORT... EMERGENCY SERVICES DISPATCHED...</p>
+    </div>
+    
+    <audio id="siren" loop src="audio/siren.mp3"></audio>
+    <audio id="explosion-sound" src="audio/explosion.mp3"></audio>
+    <audio id="swoosh-sound" src="https://www.soundjay.com/misc/swoosh-04.mp3"></audio>
+
+    <script>
+        const animContainer = document.getElementById('animation-container');
+        const effectsContainer = document.getElementById('effects-container');
+        const uiContainer = document.getElementById('ui-container');
+        const road = document.getElementById('road');
+        const siren = document.getElementById('siren');
+        const explosionSound = document.getElementById('explosion-sound');
+        const swooshSound = document.getElementById('swoosh-sound');
+        const newsTicker = document.getElementById('news-ticker');
+        
+        let isFirstCrash = true;
+
+        function playSound(sound) {
+            if (!sound) return;
+            sound.currentTime = 0;
+            sound.play().catch(()=>{});
+        }
+
+        function createGroundExplosion(x, y) {
+            const explosion = document.createElement('div');
+            explosion.className = 'explosion';
+            explosion.style.left = `${x}px`;
+            explosion.style.top = `${y}px`;
+
+            let effectsHTML = `<div class="fireball"></div>`;
+            if (isFirstCrash) {
+                effectsHTML += `<div class="main-shockwave"></div>`;
+                document.body.classList.add('vibrate');
+                setTimeout(() => document.body.classList.remove('vibrate'), 500);
+            }
+            explosion.innerHTML = effectsHTML;
+            effectsContainer.appendChild(explosion);
+            
+            const crater = document.createElement('div');
+            crater.className = 'crater';
+            crater.style.left = `${x}px`;
+            road.appendChild(crater);
+
+            setTimeout(() => explosion.remove(), 2000);
+        }
+
+        function breakPlane(x, y) {
+            const emojis = ["✈️", "💥", "🔥", "⚙️"];
+            for (let i = 0; i < 4; i++) {
+                const piece = document.createElement('div');
+                piece.className = 'plane-piece';
+                piece.textContent = emojis[i % emojis.length];
+                piece.style.left = `${x}px`;
+                piece.style.top = `${y}px`;
+                piece.style.setProperty('--tx', (Math.random() * 250 - 125) + 'px');
+                piece.style.setProperty('--ty', (Math.random() * -150 - 50) + 'px');
+                piece.style.setProperty('--rot', (Math.random() * 720 - 360) + 'deg');
+                animContainer.appendChild(piece);
+                setTimeout(() => piece.remove(), 1000);
+            }
+        }
+        
+        function handlePlaneImpact(planeElement) {
+            const rect = planeElement.getBoundingClientRect();
+            planeElement.remove();
+
+            breakPlane(rect.left, rect.top);
+            createGroundExplosion(rect.left, rect.top);
+
+            if (isFirstCrash) {
+                isFirstCrash = false;
+                siren.pause();
+                playSound(explosionSound);
+                
+                newsTicker.classList.remove('hidden'); // Show news ticker
+
+                uiContainer.innerHTML = `
+                    <div class="final-message-container">
+                        <div class="final-message">BLAST!</div>
+                        <button class="replay-btn" onclick="startScene()">REPLAY</button>
+                    </div>`;
+            } else {
+                playSound(swooshSound);
+            }
+        }
+
+        function startScene() {
+            isFirstCrash = true;
+            animContainer.innerHTML = '';
+            effectsContainer.innerHTML = '';
+            uiContainer.innerHTML = '';
+            road.innerHTML = '<div class="road-markings"></div>';
+            newsTicker.classList.add('hidden'); // Hide news ticker on replay
+            
+            uiContainer.innerHTML = `<div class="mayday-alert"><div class="bg-sparks"></div><div class="mayday-text">MAYDAY! MAYDAY! 🚨</div></div>`;
+            playSound(siren);
+            
+            setTimeout(() => {
+                uiContainer.innerHTML = '';
+                for (let i = 0; i < 7; i++) {
+                    const plane = document.createElement('div');
+                    plane.className = 'falling-plane';
+                    plane.textContent = '✈️';
+
+                    plane.style.setProperty('--start-x', `${10 + Math.random() * 80}%`);
+                    plane.style.setProperty('--end-x', `${20 + Math.random() * 60}%`);
+                    plane.style.setProperty('--delay', `${Math.random() * 1.5}s`);
+                    
+                    animContainer.appendChild(plane);
+                    plane.addEventListener('animationend', () => handlePlaneImpact(plane), { once: true });
+                }
+            }, 3000);
+        }
+
+        const starContainer = document.getElementById("star-container");
+        for (let i = 0; i < 150; i++) {
+            const star = document.createElement("div");
+            star.classList.add("star");
+            star.style.top = `${Math.random() * 100}%`;
+            star.style.left = `${Math.random() * 100}%`;
+            star.style.animationDelay = `${Math.random() * 6}s`;
+            starContainer.appendChild(star);
+        }
+        
+        startScene();
+    </script>
+</body>
+</html>
