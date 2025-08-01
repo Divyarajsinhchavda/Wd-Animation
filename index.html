@@ -22,7 +22,7 @@
             position: relative;
         }
 
-        /* --- NEW: Navbar Styles --- */
+        /* --- Navbar Styles --- */
         .navbar {
             position: absolute;
             top: 0;
@@ -48,7 +48,7 @@
             font-size: 1rem;
         }
 
-        /* --- NEW: Footer News Ticker Styles --- */
+        /* --- Footer News Ticker Styles --- */
         .news-ticker {
             position: absolute;
             bottom: 0;
@@ -60,6 +60,10 @@
             overflow: hidden;
             display: flex;
             align-items: center;
+            visibility: hidden; /* hidden by default */
+        }
+        .news-ticker.visible {
+            visibility: visible;
         }
         .news-ticker p {
             position: absolute;
@@ -70,7 +74,7 @@
         }
         @keyframes tickerScroll { 
             from { transform: translateX(100%); } 
-            to { transform: translateX(-150%); } /* Extends beyond screen width */
+            to { transform: translateX(-150%); }
         }
         
         #star-container, #effects-container, #animation-container, #ui-container { position: absolute; left: 0; top: 0; width: 100%; height: 100%; pointer-events: none; }
@@ -97,6 +101,33 @@
         .final-message { font-size: 5rem; font-weight: 900; color: var(--explosion-outer); text-shadow:0 0 10px white, 0 0 20px var(--explosion-outer); opacity:0; transform:scale(0.5); animation:showText 1s ease-out forwards; }
         .replay-btn { display: block; margin: 20px auto; background: #fff; color: #111; padding: 15px 30px; border: none; border-radius: 30px; cursor: pointer; font-size: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.4); opacity: 0; animation: showText 1s 1s forwards; pointer-events: all; }
         
+        /* --- NEW: Start Screen Styles --- */
+        #start-screen {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            z-index: 30;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        #start-btn {
+            background: #ff5e22;
+            color: white;
+            padding: 20px 40px;
+            border: none;
+            border-radius: 50px;
+            font-size: 1.5rem;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 5px 25px rgba(255, 94, 34, 0.5);
+            transition: transform 0.2s ease;
+        }
+        #start-btn:hover {
+            transform: scale(1.05);
+        }
+
         @keyframes twinkle{ 50% { opacity: 0.3; } }
         @keyframes moveRoad{from{background-position:0 0;}to{background-position:-150px 0;}}
         @keyframes planeFall{ to { top: calc(100vh - 130px); left: var(--end-x); transform: rotate(-60deg) scale(1.5); } }
@@ -128,15 +159,20 @@
     <div id="effects-container"></div>
     <div id="ui-container"></div>
     
-    <div class="news-ticker hidden" id="news-ticker">
+    <div class="news-ticker" id="news-ticker">
         <p>BREAKING NEWS: MULTIPLE UNIDENTIFIED AIRCRAFT CRASH NEAR BHAVNAGAR PORT... EMERGENCY SERVICES DISPATCHED...</p>
     </div>
+
+    <div id="start-screen">
+        <button id="start-btn">Start Catastrophe</button>
+    </div>
     
-    <audio id="siren" loop src="audio/siren.mp3"></audio>
-    <audio id="explosion-sound" src="audio/explosion.mp3"></audio>
+    <audio id="siren" loop src="https://www.soundjay.com/buttons/sounds/beep-01a.mp3"></audio> 
+    <audio id="explosion-sound" src="https://www.soundjay.com/human/sounds/fart-01.mp3"></audio>
     <audio id="swoosh-sound" src="https://www.soundjay.com/misc/swoosh-04.mp3"></audio>
 
     <script>
+        // DOM Elements
         const animContainer = document.getElementById('animation-container');
         const effectsContainer = document.getElementById('effects-container');
         const uiContainer = document.getElementById('ui-container');
@@ -145,13 +181,21 @@
         const explosionSound = document.getElementById('explosion-sound');
         const swooshSound = document.getElementById('swoosh-sound');
         const newsTicker = document.getElementById('news-ticker');
+        const starContainer = document.getElementById("star-container");
+        const startScreen = document.getElementById('start-screen');
+        const startBtn = document.getElementById('start-btn');
+        
+        // --- NEW: Constants for easier configuration ---
+        const MAYDAY_ALERT_DURATION = 3000; // ms
+        const NUM_PLANES = 7;
+        const NUM_STARS = 150;
         
         let isFirstCrash = true;
 
         function playSound(sound) {
             if (!sound) return;
             sound.currentTime = 0;
-            sound.play().catch(()=>{});
+            sound.play().catch(e => console.error("Audio play failed:", e));
         }
 
         function createGroundExplosion(x, y) {
@@ -205,13 +249,25 @@
                 siren.pause();
                 playSound(explosionSound);
                 
-                newsTicker.classList.remove('hidden'); // Show news ticker
+                newsTicker.classList.add('visible');
 
-                uiContainer.innerHTML = `
-                    <div class="final-message-container">
-                        <div class="final-message">BLAST!</div>
-                        <button class="replay-btn" onclick="startScene()">REPLAY</button>
-                    </div>`;
+                // --- NEW: Using addEventListener instead of onclick ---
+                const finalMessageContainer = document.createElement('div');
+                finalMessageContainer.className = 'final-message-container';
+                
+                const finalMessage = document.createElement('div');
+                finalMessage.className = 'final-message';
+                finalMessage.textContent = 'BLAST!';
+                
+                const replayBtn = document.createElement('button');
+                replayBtn.className = 'replay-btn';
+                replayBtn.textContent = 'REPLAY';
+                replayBtn.addEventListener('click', startScene); // Best practice
+
+                finalMessageContainer.appendChild(finalMessage);
+                finalMessageContainer.appendChild(replayBtn);
+                uiContainer.appendChild(finalMessageContainer);
+                
             } else {
                 playSound(swooshSound);
             }
@@ -223,14 +279,14 @@
             effectsContainer.innerHTML = '';
             uiContainer.innerHTML = '';
             road.innerHTML = '<div class="road-markings"></div>';
-            newsTicker.classList.add('hidden'); // Hide news ticker on replay
+            newsTicker.classList.remove('visible');
             
             uiContainer.innerHTML = `<div class="mayday-alert"><div class="bg-sparks"></div><div class="mayday-text">MAYDAY! MAYDAY! 🚨</div></div>`;
             playSound(siren);
             
             setTimeout(() => {
                 uiContainer.innerHTML = '';
-                for (let i = 0; i < 7; i++) {
+                for (let i = 0; i < NUM_PLANES; i++) {
                     const plane = document.createElement('div');
                     plane.className = 'falling-plane';
                     plane.textContent = '✈️';
@@ -242,11 +298,11 @@
                     animContainer.appendChild(plane);
                     plane.addEventListener('animationend', () => handlePlaneImpact(plane), { once: true });
                 }
-            }, 3000);
+            }, MAYDAY_ALERT_DURATION);
         }
 
-        const starContainer = document.getElementById("star-container");
-        for (let i = 0; i < 150; i++) {
+        // Generate stars
+        for (let i = 0; i < NUM_STARS; i++) {
             const star = document.createElement("div");
             star.classList.add("star");
             star.style.top = `${Math.random() * 100}%`;
@@ -255,7 +311,15 @@
             starContainer.appendChild(star);
         }
         
-        startScene();
+        // --- NEW: Start scene on user interaction ---
+        startBtn.addEventListener('click', () => {
+            startScreen.style.display = 'none'; // Hide the start screen
+            startScene(); // Start the main animation
+        }, { once: true });
+        
+        
+
+
     </script>
 </body>
 </html>
